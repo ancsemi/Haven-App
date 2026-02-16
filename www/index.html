@@ -15,11 +15,18 @@
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
 
-    /* ── Connect screen ─────────────────────────────── */
+    /* ── Safe-area insets (notch / punch-hole) ──── */
+    :root {
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    /* ── Connect screen ─────────────────────────── */
     #connect-screen {
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
       height: 100%; padding: 24px;
+      padding-top: calc(24px + var(--safe-top));
       color: #e0e0e0;
     }
     #connect-screen h1 {
@@ -32,7 +39,8 @@
     }
     #connect-screen label {
       font-size: 13px; color: #bbb; margin-bottom: 6px;
-      align-self: stretch; max-width: 340px; margin-left: auto; margin-right: auto;
+      align-self: stretch; max-width: 340px;
+      margin-left: auto; margin-right: auto;
     }
     #server-url {
       width: 100%; max-width: 340px; padding: 14px 16px;
@@ -40,23 +48,110 @@
       background: #16213e; color: #fff; font-size: 16px;
       outline: none; margin-bottom: 16px;
     }
+    #server-url::placeholder { color: #666; }
     #server-url:focus { border-color: #0f3460; }
     #connect-btn {
       width: 100%; max-width: 340px; padding: 14px;
       border: none; border-radius: 8px;
       background: #0f3460; color: #fff;
       font-size: 16px; font-weight: 600;
-      cursor: pointer;
+      cursor: pointer; transition: background 0.15s;
     }
     #connect-btn:active { background: #0a2647; }
+    #connect-btn:disabled { opacity: 0.6; }
     #connect-error {
       color: #e74c3c; font-size: 13px;
       margin-top: 12px; display: none;
+      max-width: 340px; text-align: center;
     }
 
-    /* ── WebView frame ──────────────────────────────── */
+    /* Saved-servers list */
+    #saved-servers {
+      width: 100%; max-width: 340px;
+      margin-top: 24px;
+    }
+    #saved-servers:empty { display: none; }
+    .saved-label {
+      font-size: 12px; color: #666;
+      text-transform: uppercase; letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+    .saved-item {
+      display: flex; align-items: center;
+      padding: 10px 14px; margin-bottom: 6px;
+      border-radius: 8px; background: #16213e;
+      color: #ccc; font-size: 14px;
+      cursor: pointer; transition: background 0.15s;
+    }
+    .saved-item:active { background: #0f3460; }
+    .saved-item .saved-url { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .saved-item .saved-remove {
+      margin-left: 8px; color: #666; font-size: 18px;
+      padding: 0 4px; border: none; background: none;
+    }
+    .saved-item .saved-remove:active { color: #e74c3c; }
+
+    /* ── WebView frame ──────────────────────────── */
     #app-frame {
       display: none; width: 100%; height: 100%; border: none;
+      background: #1a1a2e;
+    }
+
+    /* ── Loading overlay ────────────────────────── */
+    #loading-overlay {
+      display: none;
+      position: fixed; inset: 0; z-index: 100;
+      background: #1a1a2e;
+      flex-direction: column;
+      align-items: center; justify-content: center;
+      color: #aaa; font-size: 14px;
+    }
+    #loading-overlay.active { display: flex; }
+    .loading-spinner {
+      width: 36px; height: 36px;
+      border: 3px solid #333; border-top-color: #0f3460;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #loading-text { text-align: center; }
+    #loading-cancel {
+      margin-top: 20px; padding: 10px 28px;
+      border: 1px solid #333; border-radius: 8px;
+      background: none; color: #aaa; font-size: 14px;
+      cursor: pointer;
+    }
+    #loading-cancel:active { background: #222; }
+
+    /* ── Disconnect confirm ─────────────────────── */
+    #disconnect-overlay {
+      display: none;
+      position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,0.7);
+      align-items: center; justify-content: center;
+    }
+    #disconnect-overlay.active { display: flex; }
+    .disconnect-dialog {
+      background: #1e1e3a; border-radius: 12px;
+      padding: 24px; width: 280px; text-align: center;
+      color: #e0e0e0;
+    }
+    .disconnect-dialog h3 { margin-bottom: 8px; font-size: 18px; }
+    .disconnect-dialog p { font-size: 13px; color: #999; margin-bottom: 20px; }
+    .disconnect-actions { display: flex; gap: 10px; }
+    .disconnect-actions button {
+      flex: 1; padding: 12px; border: none; border-radius: 8px;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+    }
+    .btn-cancel { background: #333; color: #ccc; }
+    .btn-cancel:active { background: #444; }
+    .btn-disconnect { background: #e74c3c; color: #fff; }
+    .btn-disconnect:active { background: #c0392b; }
+
+    /* ── Keyboard adjustments ───────────────────── */
+    body.keyboard-open #app-frame {
+      height: 100%;
     }
   </style>
 </head>
@@ -67,122 +162,386 @@
     <h1>HAVEN</h1>
     <p>Connect to your server</p>
     <label for="server-url">Server URL</label>
-    <input type="url" id="server-url" placeholder="https://your-server.com" autocapitalize="off" autocorrect="off" spellcheck="false">
+    <input type="url" id="server-url" placeholder="https://your-server.com"
+           autocapitalize="off" autocorrect="off" spellcheck="false"
+           enterkeyhint="go">
     <button id="connect-btn">Connect</button>
     <div id="connect-error"></div>
+    <div id="saved-servers"></div>
   </div>
 
   <!-- Haven loads here -->
-  <iframe id="app-frame" allow="microphone; camera; autoplay; fullscreen"></iframe>
+  <iframe id="app-frame"
+          allow="microphone; camera; autoplay; fullscreen; display-capture; clipboard-write"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-downloads allow-popups-to-escape-sandbox"></iframe>
+
+  <!-- Loading overlay -->
+  <div id="loading-overlay">
+    <div class="loading-spinner"></div>
+    <div id="loading-text">Connecting…</div>
+    <button id="loading-cancel">Cancel</button>
+  </div>
+
+  <!-- Disconnect confirmation -->
+  <div id="disconnect-overlay">
+    <div class="disconnect-dialog">
+      <h3>Disconnect?</h3>
+      <p>Return to the server list</p>
+      <div class="disconnect-actions">
+        <button class="btn-cancel" id="disconnect-no">Cancel</button>
+        <button class="btn-disconnect" id="disconnect-yes">Disconnect</button>
+      </div>
+    </div>
+  </div>
 
   <script type="module">
-    import { App } from '@capacitor/app';
-    import { StatusBar, Style } from '@capacitor/status-bar';
-    import { Keyboard } from '@capacitor/keyboard';
-    import { SplashScreen } from '@capacitor/splash-screen';
+    import { App }               from '@capacitor/app';
+    import { StatusBar, Style }  from '@capacitor/status-bar';
+    import { Keyboard }          from '@capacitor/keyboard';
+    import { SplashScreen }      from '@capacitor/splash-screen';
     import { PushNotifications } from '@capacitor/push-notifications';
 
-    /* ── Status bar ───────────────────────────────── */
+    /* ─────────────────────────────────────────────
+       Constants & DOM
+    ───────────────────────────────────────────── */
+    const STORAGE_KEY   = 'haven_server_url';
+    const SERVERS_KEY   = 'haven_saved_servers';
+    const FCM_TOKEN_KEY = 'haven_fcm_token';
+
+    const urlInput        = document.getElementById('server-url');
+    const connectBtn      = document.getElementById('connect-btn');
+    const connectError    = document.getElementById('connect-error');
+    const connectScreen   = document.getElementById('connect-screen');
+    const appFrame        = document.getElementById('app-frame');
+    const loadingOverlay  = document.getElementById('loading-overlay');
+    const loadingText     = document.getElementById('loading-text');
+    const loadingCancel   = document.getElementById('loading-cancel');
+    const savedServersDiv = document.getElementById('saved-servers');
+    const disconnectOv    = document.getElementById('disconnect-overlay');
+
+    let currentServerUrl = null;
+    let iframeReady      = false;  // Haven client has sent 'haven:ready'
+    let backPressTime    = 0;      // double-back-to-disconnect timer
+
+    /* ─────────────────────────────────────────────
+       Status bar
+    ───────────────────────────────────────────── */
     try {
       await StatusBar.setStyle({ style: Style.Dark });
       await StatusBar.setBackgroundColor({ color: '#1a1a2e' });
-    } catch (_) { /* web fallback */ }
+    } catch (_) {}
 
-    /* ── Splash ───────────────────────────────────── */
+    /* ─────────────────────────────────────────────
+       Splash screen — hide once shell is ready
+    ───────────────────────────────────────────── */
     try { await SplashScreen.hide(); } catch (_) {}
 
-    /* ── Keyboard ─────────────────────────────────── */
+    /* ─────────────────────────────────────────────
+       Keyboard
+    ───────────────────────────────────────────── */
     try {
-      Keyboard.addListener('keyboardWillShow', () => {
+      Keyboard.addListener('keyboardWillShow', (info) => {
         document.body.classList.add('keyboard-open');
+        // Tell Haven client about keyboard height
+        postToIframe({ type: 'haven:keyboard', visible: true, height: info.keyboardHeight });
       });
       Keyboard.addListener('keyboardWillHide', () => {
         document.body.classList.remove('keyboard-open');
+        postToIframe({ type: 'haven:keyboard', visible: false, height: 0 });
       });
     } catch (_) {}
 
-    /* ── Push notifications ───────────────────────── */
+    /* ─────────────────────────────────────────────
+       Push notifications (FCM)
+    ───────────────────────────────────────────── */
+    let fcmToken = localStorage.getItem(FCM_TOKEN_KEY) || null;
+
     async function initPush() {
       try {
         const perm = await PushNotifications.requestPermissions();
-        if (perm.receive === 'granted') {
-          await PushNotifications.register();
-        }
+        if (perm.receive !== 'granted') return;
+        await PushNotifications.register();
+
         PushNotifications.addListener('registration', (token) => {
-          // Send FCM token to Haven server later
-          localStorage.setItem('haven_fcm_token', token.value);
-          console.log('FCM token:', token.value);
+          fcmToken = token.value;
+          localStorage.setItem(FCM_TOKEN_KEY, fcmToken);
+          console.log('[Haven] FCM token:', fcmToken);
+          // Forward token to Haven client if iframe is ready
+          postToIframe({ type: 'haven:fcm-token', token: fcmToken });
         });
+
         PushNotifications.addListener('pushNotificationReceived', (notification) => {
-          console.log('Push received:', notification);
+          console.log('[Haven] Push received:', notification);
+          // Forward to Haven client for in-app display
+          postToIframe({ type: 'haven:push-received', notification });
         });
-        PushNotifications.addListener('pushNotificationActionPerformed', (notification) => {
-          console.log('Push action:', notification);
+
+        PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+          console.log('[Haven] Push action:', action);
+          // Forward tap action — Haven client can switch to the right channel
+          postToIframe({ type: 'haven:push-action', data: action.notification?.data || {} });
         });
-      } catch (_) {}
+      } catch (e) {
+        console.warn('[Haven] Push init failed:', e);
+      }
     }
     initPush();
 
-    /* ── Back button handling ─────────────────────── */
-    App.addListener('backButton', ({ canGoBack }) => {
-      const frame = document.getElementById('app-frame');
-      if (frame.style.display !== 'none') {
-        // Try to go back inside the iframe, or disconnect
-        try { frame.contentWindow.history.back(); } catch (_) {}
+    /* ─────────────────────────────────────────────
+       postMessage bridge (parent → iframe)
+    ───────────────────────────────────────────── */
+    function postToIframe(msg) {
+      if (!currentServerUrl || !appFrame.contentWindow) return;
+      try {
+        appFrame.contentWindow.postMessage(msg, currentServerUrl);
+      } catch (_) {
+        // Cross-origin may block — try wildcard (safe, we control the protocol)
+        try { appFrame.contentWindow.postMessage(msg, '*'); } catch (_2) {}
+      }
+    }
+
+    // Listen for messages from Haven client
+    window.addEventListener('message', (e) => {
+      if (!currentServerUrl) return;
+      const data = e.data;
+      if (!data || typeof data.type !== 'string') return;
+
+      switch (data.type) {
+        case 'haven:ready':
+          // Haven client is loaded and listening
+          iframeReady = true;
+          loadingOverlay.classList.remove('active');
+          // Send FCM token if we have one
+          if (fcmToken) postToIframe({ type: 'haven:fcm-token', token: fcmToken });
+          // Tell Haven it's running inside the mobile app
+          postToIframe({ type: 'haven:mobile-init', platform: 'android' });
+          break;
+
+        case 'haven:back-exhausted':
+          // Haven has nothing more to close — handle at shell level
+          handleBackExhausted();
+          break;
+
+        case 'haven:theme-color':
+          // Haven client reports its theme color for status bar
+          if (data.color) {
+            try { StatusBar.setBackgroundColor({ color: data.color }); } catch (_) {}
+          }
+          break;
+
+        case 'haven:disconnect':
+          // Haven client requests disconnect (e.g. logout)
+          disconnect();
+          break;
       }
     });
 
-    /* ── Connect logic ────────────────────────────── */
-    const STORAGE_KEY = 'haven_server_url';
-    const urlInput = document.getElementById('server-url');
-    const connectBtn = document.getElementById('connect-btn');
-    const connectError = document.getElementById('connect-error');
-    const connectScreen = document.getElementById('connect-screen');
-    const appFrame = document.getElementById('app-frame');
+    /* ─────────────────────────────────────────────
+       Back button handling (Android)
+    ───────────────────────────────────────────── */
+    App.addListener('backButton', () => {
+      // If disconnect dialog is open, close it
+      if (disconnectOv.classList.contains('active')) {
+        disconnectOv.classList.remove('active');
+        return;
+      }
 
-    // Restore last URL
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) urlInput.value = saved;
+      // If on connect screen, exit app
+      if (connectScreen.style.display !== 'none') {
+        App.exitApp();
+        return;
+      }
 
+      // If loading, cancel connection
+      if (loadingOverlay.classList.contains('active')) {
+        cancelConnection();
+        return;
+      }
+
+      // Send back command to Haven client via postMessage
+      if (iframeReady) {
+        postToIframe({ type: 'haven:back' });
+      } else {
+        // iframe not ready — treat as back-exhausted
+        handleBackExhausted();
+      }
+    });
+
+    function handleBackExhausted() {
+      const now = Date.now();
+      if (now - backPressTime < 2000) {
+        // Double-back within 2 seconds → show disconnect dialog
+        showDisconnectDialog();
+      } else {
+        backPressTime = now;
+        // Brief visual hint could go here (e.g. toast)
+      }
+    }
+
+    /* ─────────────────────────────────────────────
+       Disconnect dialog
+    ───────────────────────────────────────────── */
+    function showDisconnectDialog() {
+      disconnectOv.classList.add('active');
+    }
+    document.getElementById('disconnect-no').addEventListener('click', () => {
+      disconnectOv.classList.remove('active');
+    });
+    document.getElementById('disconnect-yes').addEventListener('click', () => {
+      disconnectOv.classList.remove('active');
+      disconnect();
+    });
+
+    function disconnect() {
+      appFrame.src = 'about:blank';
+      appFrame.style.display = 'none';
+      loadingOverlay.classList.remove('active');
+      connectScreen.style.display = 'flex';
+      connectBtn.disabled = false;
+      connectBtn.textContent = 'Connect';
+      currentServerUrl = null;
+      iframeReady = false;
+      backPressTime = 0;
+      // Reset status bar to shell color
+      try { StatusBar.setBackgroundColor({ color: '#1a1a2e' }); } catch (_) {}
+    }
+
+    /* ─────────────────────────────────────────────
+       App resume / state change
+    ───────────────────────────────────────────── */
+    App.addListener('appStateChange', ({ isActive }) => {
+      if (isActive && iframeReady) {
+        postToIframe({ type: 'haven:resume' });
+      }
+    });
+
+    /* ─────────────────────────────────────────────
+       Saved servers
+    ───────────────────────────────────────────── */
+    function getSavedServers() {
+      try { return JSON.parse(localStorage.getItem(SERVERS_KEY)) || []; }
+      catch { return []; }
+    }
+    function saveSavedServers(list) {
+      localStorage.setItem(SERVERS_KEY, JSON.stringify(list));
+    }
+    function addSavedServer(url) {
+      let servers = getSavedServers();
+      servers = servers.filter(s => s !== url);
+      servers.unshift(url);
+      if (servers.length > 5) servers.length = 5;
+      saveSavedServers(servers);
+      renderSavedServers();
+    }
+    function removeSavedServer(url) {
+      let servers = getSavedServers().filter(s => s !== url);
+      saveSavedServers(servers);
+      renderSavedServers();
+    }
+    function renderSavedServers() {
+      const servers = getSavedServers();
+      if (!servers.length) { savedServersDiv.innerHTML = ''; return; }
+      savedServersDiv.innerHTML =
+        '<div class="saved-label">Recent servers</div>' +
+        servers.map(url =>
+          `<div class="saved-item" data-url="${url}">
+            <span class="saved-url">${url.replace(/^https?:\/\//, '')}</span>
+            <button class="saved-remove" data-remove="${url}">&times;</button>
+          </div>`
+        ).join('');
+    }
+    savedServersDiv.addEventListener('click', (e) => {
+      const removeBtn = e.target.closest('.saved-remove');
+      if (removeBtn) {
+        e.stopPropagation();
+        removeSavedServer(removeBtn.dataset.remove);
+        return;
+      }
+      const item = e.target.closest('.saved-item');
+      if (item) {
+        urlInput.value = item.dataset.url;
+        connect();
+      }
+    });
+    // Migrate old single-saved URL
+    const legacySaved = localStorage.getItem(STORAGE_KEY);
+    if (legacySaved) {
+      addSavedServer(legacySaved);
+      urlInput.value = legacySaved;
+    }
+    renderSavedServers();
+
+    /* ─────────────────────────────────────────────
+       Connect logic
+    ───────────────────────────────────────────── */
     function showError(msg) {
       connectError.textContent = msg;
       connectError.style.display = 'block';
+      connectBtn.disabled = false;
+      connectBtn.textContent = 'Connect';
     }
+
+    let connectionTimeout = null;
 
     async function connect() {
       let url = urlInput.value.trim();
-      if (!url) { showError('Please enter a server URL'); return; }
+      if (!url) return showError('Please enter a server URL');
       if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
-      url = url.replace(/\/+$/, ''); // strip trailing slash
+      url = url.replace(/\/+$/, '');
 
       connectBtn.disabled = true;
       connectBtn.textContent = 'Connecting…';
       connectError.style.display = 'none';
 
+      // Show loading overlay
+      loadingText.textContent = 'Connecting…';
+      loadingOverlay.classList.add('active');
+
+      // Health check (non-blocking — we load even if it fails)
       try {
         const resp = await fetch(url + '/api/health', {
           method: 'GET', mode: 'cors',
-          signal: AbortSignal.timeout(8000)
+          signal: AbortSignal.timeout(6000),
         });
-        if (!resp.ok) throw new Error('Server responded with ' + resp.status);
+        if (!resp.ok) throw new Error(resp.status);
       } catch (e) {
-        // If no /api/health, just try loading it anyway
-        console.warn('Health check failed, loading directly:', e.message);
+        console.warn('[Haven] Health check skipped:', e.message);
+        loadingText.textContent = 'Loading server…';
       }
 
+      currentServerUrl = url;
       localStorage.setItem(STORAGE_KEY, url);
+      addSavedServer(url);
+
+      // Load Haven in the iframe
       appFrame.src = url + '/app.html';
       appFrame.style.display = 'block';
       connectScreen.style.display = 'none';
+      iframeReady = false;
+
+      // Timeout — if Haven doesn't send 'ready' in 20s, show anyway
+      clearTimeout(connectionTimeout);
+      connectionTimeout = setTimeout(() => {
+        if (!iframeReady) {
+          iframeReady = true;
+          loadingOverlay.classList.remove('active');
+        }
+      }, 20000);
+    }
+
+    function cancelConnection() {
+      clearTimeout(connectionTimeout);
+      disconnect();
     }
 
     connectBtn.addEventListener('click', connect);
     urlInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') connect();
     });
+    loadingCancel.addEventListener('click', cancelConnection);
 
-    // Auto-connect if we have a saved URL
-    if (saved) connect();
+    // Auto-connect to last server
+    if (legacySaved) connect();
   </script>
 </body>
 </html>

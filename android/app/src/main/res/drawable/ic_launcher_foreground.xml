@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Shield shape (centered in safe zone 18-90) -->
+    <path
+        android:fillColor="#0f3460"
+        android:pathData="M54,22 L78,32 C78,32 80,60 54,84 C28,60 30,32 30,32 Z" />
+
+    <!-- Inner shield highlight -->
+    <path
+        android:fillColor="#16213e"
+        android:pathData="M54,26 L74,34.5 C74,34.5 76,58 54,79 C32,58 34,34.5 34,34.5 Z" />
+
+    <!-- Letter "H" -->
+    <path
+        android:fillColor="#e0e0e0"
+        android:pathData="M43,40 L43,64 L48,64 L48,55 L60,55 L60,64 L65,64 L65,40 L60,40 L60,50 L48,50 L48,40 Z" />
+</vector>

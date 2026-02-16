@@ -1,5 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
+const IS_PROD = false; // Set to true for release builds
+
 const config: CapacitorConfig = {
   appId: 'com.haven.chat',
   appName: 'Haven',
@@ -33,8 +35,9 @@ const config: CapacitorConfig = {
   },
   android: {
     // Allow cleartext for local network dev servers
-    allowMixedContent: true,
-    webContentsDebuggingEnabled: true,
+    allowMixedContent: !IS_PROD,
+    // Disable for production APKs — enables Chrome DevTools remote debugging
+    webContentsDebuggingEnabled: !IS_PROD,
   },
 };
 
