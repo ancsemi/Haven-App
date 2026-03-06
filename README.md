@@ -1,61 +1,35 @@
 # Haven — Android App
 
-Capacitor-powered WebView wrapper that connects to your self-hosted Haven server.
+> ⚠️ **This repository is deprecated.** A brand-new native Android app for Haven is now in **closed beta** on Google Play, built from the ground up by **Amnibro**.
 
-## Prerequisites
+---
 
-- **Node.js 18+** (20 LTS recommended)
-- **Android Studio** (with SDK 34+, Build Tools, and an emulator or connected device)
-- **Java 17** (bundled with modern Android Studio)
+## 📱 Haven Android (Closed Beta)
 
-## Quick start
+The original Capacitor WebView wrapper in this repo has been replaced by a fully native Android app — not a web wrapper — built from scratch specifically for Haven.
 
-```bash
-# 1. Install dependencies (if not already done)
-npm install
+### Features
 
-# 2. Sync web assets + plugins → android/
-npx cap sync android
+- **Native Android** — built from the ground up, not a WebView wrapper
+- **Push Notifications** — real-time notifications via Google Play services
+- **Full Chat & Voice** — all channels, DMs, voice chat, and file sharing
+- **Offline-ready** — designed for the mobile experience
 
-# 3. Open in Android Studio
-npx cap open android
-```
+### 🚀 Want to join the closed beta?
 
-Then click **Run ▶** in Android Studio to build & launch on an emulator or device.
+Email **[amnibro7@gmail.com](mailto:amnibro7@gmail.com?subject=Haven%20Android%20Beta%20-%20Opt-in%20Request&body=Hi%20Amnibro%2C%0A%0AI%27d%20like%20to%20opt-in%20to%20the%20Haven%20Android%20closed%20beta%20on%20Google%20Play.%0A%0AMy%20email%3A%20%5Byour%20Google%20Play%20email%5D%0A%0AThanks!)** with your Google Play email to request access.
 
-## How it works
+> **You still need a Haven server.** The Android app is a client — it connects to your self-hosted Haven server.
+> Download and run [Haven](https://github.com/ancsemi/Haven) first if you haven't already.
 
-The app is a thin native wrapper around a WebView. On first launch the user enters their Haven server URL (e.g. `https://myserver.example.com`). The URL is saved to `localStorage` so subsequent launches auto-connect.
+---
 
-All chat logic, voice, and UI are served by the Haven server — the native shell provides:
-- **Push notifications** via Firebase Cloud Messaging
-- **Microphone access** for voice channels
-- **Back-button** handling
-- **Status bar** theming
-- **Splash screen**
+### About this repository
 
-## Project structure
+This repo contained the original Capacitor-based Haven Android wrapper. That approach has been fully superseded by Amnibro's native implementation, which offers significantly better performance, push notification support, and a true native experience.
 
-```
-Haven-App/
-├── www/                 # Web shell (connect screen + iframe loader)
-│   └── index.html
-├── android/             # Generated Android Studio project
-├── capacitor.config.ts  # Capacitor configuration
-├── package.json
-└── README.md
-```
+**This code is no longer maintained.** If you're looking for the Haven Android app, request access to the closed beta above.
 
-## Building a release APK
+---
 
-1. Open `android/` in Android Studio
-2. **Build → Generate Signed Bundle / APK**
-3. Choose APK, follow the signing wizard
-4. Output lands in `android/app/build/outputs/apk/release/`
-
-## Push notifications (future)
-
-FCM integration is wired in the web shell (`PushNotifications` plugin). To activate:
-1. Create a Firebase project and add an Android app with package `com.haven.chat`
-2. Download `google-services.json` → place in `android/app/`
-3. The FCM token is stored in `localStorage('haven_fcm_token')` and can be sent to the Haven server for server-side push delivery.
+*Built with ❤️ by **Amnibro** — huge thanks for his incredible work building the Haven Android app from the ground up.*
